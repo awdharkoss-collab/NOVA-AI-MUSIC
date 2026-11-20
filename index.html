@@ -255,7 +255,7 @@ align-items:center;padding:0 25px;gap:20px;z-index:15
 
 <header class="header">
 <div class="search-box">
-🔍 <input id="search" placeholder="Müzik, sanatçı veya tür ara..." oninput="searchMusic()">
+🔍 <input id="search" placeholder="İnternetten müzik, sanatçı veya tür ara..." oninput="searchMusic()">
 </div>
 <div class="profile">🎧 SESİN YENİ EVRENİ</div>
 </header>
@@ -289,13 +289,13 @@ align-items:center;padding:0 25px;gap:20px;z-index:15
 </section>
 
 <section id="discover" class="page">
-<div class="section"><span class="eyebrow">MÜZİK EVRENİ</span><h2>✦ Müzikleri Keşfet</h2><div class="cards" id="discoverCards"></div></div>
+<div class="section"><span class="eyebrow">MÜZİK EVRENİ</span><h2>✦ Müzikleri Keşfet</h2><p class="muted" style="margin:10px 0 18px">Jamendo kataloğundan çevrimiçi müzikler · Her parça kendi sanatçısına aittir.</p><div class="cards" id="discoverCards"></div><p class="muted" id="apiStatus" style="margin-top:18px">Müzik kataloğu yükleniyor…</p></div>
 </section>
 
 <section id="library" class="page">
 <div class="special">
 <span class="eyebrow">KİŞİSEL ALANIN</span><h2>▤ Müzik Kütüphanem</h2>
-<div class="library-panel"><h3>♫ Müzik dünyan seni bekliyor</h3><p>Favori parçalarını burada bulabilirsin.</p></div>
+<div class="cards" id="libraryCards"></div><div class="library-panel" id="libraryEmpty"><h3>♫ Müzik dünyan seni bekliyor</h3><p>Favorilerine eklediğin parçalar burada görünecek.</p></div>
 </div>
 </section>
 
@@ -388,251 +388,281 @@ Bana ruh halini, müzik türünü veya dinlemek istediğin ortamı anlat.
 <audio id="audio"></audio>
 
 <script>
-const music=[
-{title:"Midnight Dreams",artist:"Nova Sounds",genre:"Electronic",image:"https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=400",file:"music/midnight-dreams.mp3"},
-{title:"Lost in Space",artist:"Luna",genre:"Ambient",image:"https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=400",file:"music/lost-in-space.mp3"},
-{title:"Golden Hour",artist:"Dreamers",genre:"Pop",image:"https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=400",file:"music/golden-hour.mp3"},
-{title:"Deep Ocean",artist:"Blue Wave",genre:"Chill",image:"https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400",file:"music/deep-ocean.mp3"},
-{title:"Peaceful Mind",artist:"Aura",genre:"Relax",image:"https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=400",file:"music/peaceful-mind.mp3"},
-{title:"Neon City",artist:"Future",genre:"Electronic",image:"https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=400",file:"music/neon-city.mp3"}
+/* NOVA MUSIC - Jamendo public read API */
+const JAMENDO_CLIENT_ID = "efad991c";
+const JAMENDO_API = "https://api.jamendo.com/v3.0/tracks/";
+const audio = document.getElementById("audio");
+
+let music = [];
+let currentIndex = -1;
+let favorites = JSON.parse(localStorage.getItem("novaFavoriteTracks") || "[]");
+let shuffle = false, repeat = false;
+let oscillator = null, audioContext = null, currentFrequency = null;
+let searchTimer = null;
+let currentQuery = "";
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function formatTime(time) {
+  if (!Number.isFinite(time)) return "0:00";
+  return Math.floor(time/60)+":"+String(Math.floor(time%60)).padStart(2,"0");
+}
+function setStatus(message) {
+  const el = document.getElementById("apiStatus");
+  if (el) el.textContent = message;
+}
+function normalizeTrack(t) {
+  return {
+    id: String(t.id),
+    title: t.name || "Bilinmeyen parça",
+    artist: t.artist_name || "Bilinmeyen sanatçı",
+    genre: (t.musicinfo && t.musicinfo.tags && t.musicinfo.tags.genres || []).slice(0,2).join(", ") || "Jamendo",
+    image: t.album_image || t.image || "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=400",
+    file: t.audio || "",
+    url: t.shareurl || t.shorturl || "https://www.jamendo.com/",
+    license: t.license_ccurl || ""
+  };
+}
+function renderMusic(list, target) {
+  const container = document.getElementById(target);
+  if (!container) return;
+  container.innerHTML = list.map(track => {
+    const index = music.findIndex(t => t.id === track.id);
+    const isFav = favorites.some(f => f.id === track.id);
+    return `<article class="card">
+      <img src="${escapeHTML(track.image)}" alt="${escapeHTML(track.title)}" loading="lazy">
+      <h3>${escapeHTML(track.title)}</h3>
+      <p>${escapeHTML(track.artist)} · ${escapeHTML(track.genre)}</p>
+      <div class="card-actions">
+        <button onclick="playTrackById('${escapeHTML(track.id)}')">▶ Dinle</button>
+        <button class="secondary" onclick="toggleFavoriteById('${escapeHTML(track.id)}')">${isFav?"♥":"♡"}</button>
+      </div>
+      <p style="margin-top:9px"><a href="${escapeHTML(track.url)}" target="_blank" rel="noopener noreferrer" style="color:#b49cff;font-size:10px">Jamendo'da aç ↗</a></p>
+    </article>`;
+  }).join("") || '<p class="muted">Bu aramada müzik bulunamadı.</p>';
+}
+function refresh() {
+  renderMusic(music.slice(0,8), "homeCards");
+  renderMusic(music, "discoverCards");
+  renderMusic(favorites, "favoriteCards");
+  renderMusic(favorites, "libraryCards");
+  const empty = document.getElementById("libraryEmpty");
+  if (empty) empty.style.display = favorites.length ? "none" : "block";
+}
+async function loadJamendoTracks(query = "") {
+  currentQuery = query;
+  setStatus("Jamendo kataloğunda aranıyor…");
+  const params = new URLSearchParams({
+    client_id: JAMENDO_CLIENT_ID,
+    format: "json",
+    limit: "30",
+    type: "single albumtrack",
+    audioformat: "mp32",
+    imagesize: "300",
+    include: "musicinfo"
+  });
+  if (query.trim()) params.set("namesearch", query.trim());
+  else {
+    params.set("featured", "1");
+    params.set("boost", "popularity_month");
+  }
+  try {
+    const response = await fetch(JAMENDO_API + "?" + params.toString());
+    if (!response.ok) throw new Error("API yanıtı: " + response.status);
+    const data = await response.json();
+    if (!data || !data.results) throw new Error(data?.headers?.error_message || "Beklenmeyen API yanıtı");
+    music = data.results.map(normalizeTrack).filter(t => t.file);
+    refresh();
+    setStatus(music.length
+      ? `${music.length} parça bulundu. Müzikler Jamendo sanatçıları tarafından sağlanır.`
+      : "Bu aramada çalınabilir parça bulunamadı. Başka bir kelime dene.");
+  } catch (error) {
+    console.error("Jamendo API error:", error);
+    setStatus("Müzik kataloğuna şu an bağlanılamadı. İnternet bağlantını veya Jamendo Client ID ayarını kontrol et.");
+    const home = document.getElementById("homeCards");
+    const discover = document.getElementById("discoverCards");
+    const msg = '<p class="muted">Müzik kataloğu yüklenemedi. Biraz sonra tekrar dene.</p>';
+    if (home) home.innerHTML = msg;
+    if (discover) discover.innerHTML = msg;
+  }
+}
+function showPage(id, button) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(id)?.classList.add("active");
+  document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+  if (button) button.classList.add("active");
+  if (id === "favorites" || id === "library") refresh();
+}
+function playTrack(index) {
+  if (index < 0 || index >= music.length) return;
+  playTrackById(music[index].id);
+}
+function playTrackById(id) {
+  const track = music.find(t => t.id === String(id)) || favorites.find(t => t.id === String(id));
+  if (!track || !track.file) return;
+  stopFrequency();
+  const activeListIndex = music.findIndex(t => t.id === track.id);
+  currentIndex = activeListIndex;
+  audio.src = track.file;
+  audio.play().then(() => {
+    document.getElementById("playButton").textContent = "Ⅱ";
+  }).catch(err => {
+    console.error("Playback error:", err);
+    document.getElementById("playButton").textContent = "▶";
+    alert("Bu parça şu anda oynatılamıyor. Jamendo sayfasından da kontrol edebilirsin.");
+  });
+  document.getElementById("currentTitle").textContent = track.title;
+  document.getElementById("currentArtist").textContent = track.artist;
+  document.getElementById("currentImage").src = track.image;
+}
+function togglePlay() {
+  if (!audio.src) {
+    if (music.length) playTrack(0);
+    return;
+  }
+  if (audio.paused) audio.play().then(() => document.getElementById("playButton").textContent="Ⅱ").catch(()=>{});
+  else { audio.pause(); document.getElementById("playButton").textContent="▶"; }
+}
+function nextTrack() {
+  if (!music.length) return;
+  const index = shuffle ? Math.floor(Math.random()*music.length) : (currentIndex+1+music.length)%music.length;
+  playTrack(index);
+}
+function previousTrack() {
+  if (!music.length) return;
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  playTrack((currentIndex-1+music.length)%music.length);
+}
+function toggleShuffle() { shuffle = !shuffle; alert(shuffle ? "Karışık çalma açık" : "Karışık çalma kapalı"); }
+function toggleRepeat() { repeat = !repeat; alert(repeat ? "Tekrar açık" : "Tekrar kapalı"); }
+audio.addEventListener("ended", () => {
+  if (repeat) { audio.currentTime=0; audio.play().catch(()=>{}); }
+  else nextTrack();
+});
+function toggleFavoriteById(id) {
+  const track = music.find(t => t.id === String(id)) || favorites.find(t => t.id === String(id));
+  if (!track) return;
+  const exists = favorites.some(f => f.id === track.id);
+  favorites = exists ? favorites.filter(f => f.id !== track.id) : [track, ...favorites];
+  localStorage.setItem("novaFavoriteTracks", JSON.stringify(favorites));
+  refresh();
+}
+function toggleFavorite(index) {
+  if (music[index]) toggleFavoriteById(music[index].id);
+}
+function searchMusic() {
+  const query = document.getElementById("search").value.trim();
+  showPage("discover");
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadJamendoTracks(query), 450);
+}
+audio.addEventListener("timeupdate", () => {
+  document.getElementById("progress").value = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
+  document.getElementById("elapsed").textContent = formatTime(audio.currentTime);
+  document.getElementById("total").textContent = formatTime(audio.duration);
+});
+function seekMusic() {
+  if (audio.duration) audio.currentTime = (document.getElementById("progress").value/100)*audio.duration;
+}
+document.getElementById("volume").addEventListener("input", e => audio.volume = e.target.value/100);
+audio.volume = 0.7;
+
+/* Frekans sesleri */
+const frequencyGrid = document.getElementById("frequencyGrid");
+[174,285,396,432,528,639,741,852,963].forEach(hz => {
+  const div = document.createElement("div");
+  div.className = "frequency";
+  div.innerHTML = `〰<strong>${hz} Hz</strong><span>Ses deneyimi</span><button>Dinle</button>`;
+  div.querySelector("button").onclick = () => playFrequency(hz,div);
+  frequencyGrid.appendChild(div);
+});
+async function playFrequency(hz,element) {
+  if (currentFrequency === hz) { stopFrequency(); return; }
+  stopFrequency(); audio.pause();
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    await audioContext.resume();
+    oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine"; oscillator.frequency.value = hz; gain.gain.value = 0.025;
+    oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start();
+    currentFrequency = hz;
+    document.querySelectorAll(".frequency").forEach(e => {
+      e.classList.remove("active"); e.querySelector("button").textContent = "Dinle";
+    });
+    element.classList.add("active"); element.querySelector("button").textContent = "Durdur";
+    document.getElementById("currentTitle").textContent = hz+" Hz";
+    document.getElementById("currentArtist").textContent = "NOVA SOUND LAB";
+    document.getElementById("playButton").textContent = "▶";
+  } catch(e) { alert("Ses başlatılamadı."); }
+}
+function stopFrequency() {
+  if (oscillator) { try { oscillator.stop(); } catch(e) {} oscillator=null; }
+  if (audioContext) { audioContext.close(); audioContext=null; }
+  currentFrequency=null;
+  document.querySelectorAll(".frequency").forEach(e => {
+    e.classList.remove("active"); e.querySelector("button").textContent="Dinle";
+  });
+}
+
+/* Doğa sesleri: bu sesler için ayrıca lisanslı ses dosyaları gerekir. */
+const nature = [
+  ["🌧","Yağmur","sounds/rain.mp3"],["🌲","Orman","sounds/forest.mp3"],
+  ["🌊","Okyanus","sounds/ocean.mp3"],["🔥","Şömine","sounds/fire.mp3"],
+  ["🌙","Gece","sounds/night.mp3"],["🍃","Rüzgâr","sounds/wind.mp3"]
 ];
-
-const audio=document.getElementById("audio");
-let currentIndex=-1;
-let favorites=JSON.parse(localStorage.getItem("novaFavorites")||"[]");
-let shuffle=false,repeat=false;
-let oscillator=null,audioContext=null,currentFrequency=null;
-
-function escapeHTML(value){
-return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-
-function renderMusic(list,target){
-document.getElementById(target).innerHTML=list.map(track=>{
-const index=music.indexOf(track);
-return `<article class="card">
-<img src="${track.image}" alt="${escapeHTML(track.title)}">
-<h3>${escapeHTML(track.title)}</h3>
-<p>${escapeHTML(track.artist)} · ${escapeHTML(track.genre)}</p>
-<div class="card-actions">
-<button onclick="playTrack(${index})">▶ Dinle</button>
-<button class="secondary" onclick="toggleFavorite(${index})">${favorites.includes(index)?"♥":"♡"}</button>
-</div></article>`;
-}).join("")||'<p class="muted">Henüz burada bir müzik yok.</p>';
-}
-
-function refresh(){
-renderMusic(music,"homeCards");
-renderMusic(music,"discoverCards");
-renderMusic(music.filter((_,i)=>favorites.includes(i)),"favoriteCards");
-}
-
-function showPage(id,button){
-document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-if(button)button.classList.add("active");
-}
-
-function playTrack(index){
-if(index<0||index>=music.length)return;
-stopFrequency();
-currentIndex=index;
-const track=music[index];
-audio.src=track.file;
-audio.play().then(()=>document.getElementById("playButton").textContent="Ⅱ").catch(()=>{
-document.getElementById("playButton").textContent="▶";
-alert("Müzik dosyası bulunamadı. music klasörüne ilgili MP3 dosyasını ekle.");
-});
-document.getElementById("currentTitle").textContent=track.title;
-document.getElementById("currentArtist").textContent=track.artist;
-document.getElementById("currentImage").src=track.image;
-}
-
-function togglePlay(){
-if(!audio.src){playTrack(0);return}
-if(audio.paused){
-audio.play().then(()=>document.getElementById("playButton").textContent="Ⅱ").catch(()=>{});
-}else{
-audio.pause();
-document.getElementById("playButton").textContent="▶";
-}
-}
-
-function nextTrack(){
-if(!music.length)return;
-let index=shuffle?Math.floor(Math.random()*music.length):(currentIndex+1)%music.length;
-playTrack(index);
-}
-function previousTrack(){playTrack((currentIndex-1+music.length)%music.length)}
-function toggleShuffle(){shuffle=!shuffle;alert(shuffle?"Karışık çalma açık":"Karışık çalma kapalı")}
-function toggleRepeat(){repeat=!repeat;alert(repeat?"Tekrar açık":"Tekrar kapalı")}
-
-audio.addEventListener("ended",()=>{
-if(repeat){audio.currentTime=0;audio.play().catch(()=>{});}
-else nextTrack();
+nature.forEach(item => {
+  const div=document.createElement("div"); div.className="nature";
+  div.innerHTML=`${item[0]}<h3>${item[1]}</h3><button>▶ Dinle</button>`;
+  div.querySelector("button").onclick=()=>{
+    stopFrequency(); audio.src=item[2];
+    audio.play().catch(()=>alert("Bu doğa sesi henüz sunucuya eklenmemiş."));
+    document.getElementById("currentTitle").textContent=item[1];
+    document.getElementById("currentArtist").textContent="NOVA NATURE";
+    document.getElementById("currentImage").src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=200";
+  };
+  document.getElementById("natureGrid").appendChild(div);
 });
 
-function toggleFavorite(index){
-if(favorites.includes(index))favorites=favorites.filter(i=>i!==index);
-else favorites.push(index);
-localStorage.setItem("novaFavorites",JSON.stringify(favorites));
-refresh();
+/* NOVA AI: kullanıcı isteğine göre Jamendo kataloğunda arama yapar. */
+function suggestAI(text) {
+  document.getElementById("aiPrompt").value=text;
+  askNovaAI();
 }
-
-function searchMusic(){
-const query=document.getElementById("search").value.toLowerCase();
-renderMusic(music.filter(t=>(t.title+" "+t.artist+" "+t.genre).toLowerCase().includes(query)),"discoverCards");
-showPage("discover");
+function addMessage(text,type) {
+  const chat=document.getElementById("chat");
+  const div=document.createElement("div"); div.className="message "+type;
+  div.textContent=text; chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
 }
-
-function formatTime(time){
-if(!Number.isFinite(time))return "0:00";
-return Math.floor(time/60)+":"+String(Math.floor(time%60)).padStart(2,"0");
+async function askNovaAI() {
+  const input=document.getElementById("aiPrompt");
+  const prompt=input.value.trim();
+  if (!prompt) { alert("NOVA AI'ya bir şey yaz!"); return; }
+  addMessage(prompt,"user"); input.value="";
+  addMessage("İsteğine uygun parçaları Jamendo kataloğunda arıyorum…","ai");
+  const terms = prompt.toLocaleLowerCase("tr-TR");
+  let query = prompt;
+  if (/sakin|rahat|huzur|uyku|ders|çalış|piyano/.test(terms)) query="relax piano";
+  else if (/enerjik|dans|hareket|elektronik|parti|tempo/.test(terms)) query="electronic dance";
+  else if (/uzay|kozmik|bilim kurgu|galaksi|sinematik/.test(terms)) query="cinematic ambient";
+  else if (/yağmur|doğa|orman|okyanus|deniz|rüzgâr/.test(terms)) query="nature ambient";
+  else if (/pop|neşeli|mutlu|yaz/.test(terms)) query="pop";
+  showPage("discover");
+  await loadJamendoTracks(query);
+  renderMusic(music.slice(0,12),"aiResults");
+  showPage("novaAI");
+  addMessage(music.length ? `${music.length} uygun parça buldum. Öneriler aşağıda; dinlemek için oynat düğmesine bas.` : "Bu isteğe uygun parça bulamadım. Başka kelimelerle deneyebilirsin.","ai");
 }
-
-audio.addEventListener("timeupdate",()=>{
-const percent=audio.duration?(audio.currentTime/audio.duration)*100:0;
-document.getElementById("progress").value=percent;
-document.getElementById("elapsed").textContent=formatTime(audio.currentTime);
-document.getElementById("total").textContent=formatTime(audio.duration);
-});
-
-function seekMusic(){
-if(audio.duration)audio.currentTime=(document.getElementById("progress").value/100)*audio.duration;
-}
-document.getElementById("volume").addEventListener("input",e=>audio.volume=e.target.value/100);
-
-const frequencyGrid=document.getElementById("frequencyGrid");
-[174,285,396,432,528,639,741,852,963].forEach(hz=>{
-const div=document.createElement("div");
-div.className="frequency";
-div.innerHTML=`〰<strong>${hz} Hz</strong><span>Ses deneyimi</span><button>Dinle</button>`;
-div.querySelector("button").onclick=()=>playFrequency(hz,div);
-frequencyGrid.appendChild(div);
-});
-
-async function playFrequency(hz,element){
-if(currentFrequency===hz){stopFrequency();return}
-stopFrequency();
-audio.pause();
-try{
-audioContext=new(window.AudioContext||window.webkitAudioContext)();
-await audioContext.resume();
-oscillator=audioContext.createOscillator();
-const gain=audioContext.createGain();
-oscillator.type="sine";
-oscillator.frequency.value=hz;
-gain.gain.value=0.025;
-oscillator.connect(gain);
-gain.connect(audioContext.destination);
-oscillator.start();
-currentFrequency=hz;
-document.querySelectorAll(".frequency").forEach(e=>{
-e.classList.remove("active");
-e.querySelector("button").textContent="Dinle";
-});
-element.classList.add("active");
-element.querySelector("button").textContent="Durdur";
-document.getElementById("currentTitle").textContent=hz+" Hz";
-document.getElementById("currentArtist").textContent="NOVA SOUND LAB";
-}catch(e){alert("Ses başlatılamadı.")}
-}
-
-function stopFrequency(){
-if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}
-if(audioContext){audioContext.close();audioContext=null}
-currentFrequency=null;
-document.querySelectorAll(".frequency").forEach(e=>{
-e.classList.remove("active");
-e.querySelector("button").textContent="Dinle";
-});
-}
-
-const nature=[
-["🌧","Yağmur","sounds/rain.mp3"],
-["🌲","Orman","sounds/forest.mp3"],
-["🌊","Okyanus","sounds/ocean.mp3"],
-["🔥","Şömine","sounds/fire.mp3"],
-["🌙","Gece","sounds/night.mp3"],
-["🍃","Rüzgâr","sounds/wind.mp3"]
-];
-
-nature.forEach(item=>{
-const div=document.createElement("div");
-div.className="nature";
-div.innerHTML=`${item[0]}<h3>${item[1]}</h3><button>▶ Dinle</button>`;
-div.querySelector("button").onclick=()=>{
-stopFrequency();
-audio.src=item[2];
-audio.play().then(()=>{}).catch(()=>alert("Ses dosyası sounds klasöründe bulunamadı."));
-document.getElementById("currentTitle").textContent=item[1];
-document.getElementById("currentArtist").textContent="NOVA NATURE";
-document.getElementById("currentImage").src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=200";
-};
-document.getElementById("natureGrid").appendChild(div);
-});
-
-/* NOVA AI - Yerel öneri motoru */
-function suggestAI(text){
-document.getElementById("aiPrompt").value=text;
-askNovaAI();
-}
-
-function addMessage(text,type){
-const chat=document.getElementById("chat");
-const div=document.createElement("div");
-div.className="message "+type;
-div.textContent=text;
-chat.appendChild(div);
-chat.scrollTop=chat.scrollHeight;
-}
-
-function askNovaAI(){
-const input=document.getElementById("aiPrompt");
-const prompt=input.value.trim();
-if(!prompt){alert("NOVA AI'ya bir şey yaz!");return}
-
-addMessage(prompt,"user");
-input.value="";
-
-const p=prompt.toLocaleLowerCase("tr-TR");
-let recommended=[];
-
-if(/sakin|rahat|huzur|uyku|piyano|dinlen|ders|çalış/.test(p)){
-recommended=music.filter(t=>["Peaceful Mind","Deep Ocean","Lost in Space"].includes(t.title));
-}
-else if(/enerjik|dans|hareket|elektronik|parti|tempo/.test(p)){
-recommended=music.filter(t=>["Neon City","Midnight Dreams","Golden Hour"].includes(t.title));
-}
-else if(/uzay|kozmik|bilim kurgu|galaksi|sinematik/.test(p)){
-recommended=music.filter(t=>["Lost in Space","Midnight Dreams"].includes(t.title));
-}
-else if(/yağmur|doğa|orman|okyanus|deniz|rüzgâr/.test(p)){
-recommended=music.filter(t=>["Deep Ocean","Peaceful Mind"].includes(t.title));
-}
-else if(/pop|neşeli|mutlu|yaz/.test(p)){
-recommended=music.filter(t=>["Golden Hour","Neon City"].includes(t.title));
-}
-else{
-recommended=music.slice(0,3);
-}
-
-if(!recommended.length)recommended=music.slice(0,3);
-
-addMessage("İsteğini analiz ettim! Sana uygun "+recommended.length+" parça seçtim. Aşağıdan dinleyebilirsin. ✨","ai");
-
-renderMusic(recommended,"aiResults");
-}
-
 document.getElementById("aiPrompt").addEventListener("keydown",e=>{
-if(e.key==="Enter"&&!e.shiftKey){
-e.preventDefault();
-askNovaAI();
-}
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();askNovaAI();}
 });
 
+/* İlk açılışta Jamendo'dan öne çıkan parçaları getir. */
 refresh();
+loadJamendoTracks("");
 </script>
 </body>
 </html>

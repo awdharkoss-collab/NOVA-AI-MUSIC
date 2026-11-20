@@ -1,0 +1,668 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA MUSIC | Your Sound Universe</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+--bg:#090a13;
+--panel:#111321;
+--panel2:#191b2d;
+--purple:#9875ff;
+--purple2:#b49cff;
+--text:#f7f5ff;
+--muted:#9294a9;
+--border:#292c42;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button{cursor:pointer;font-family:inherit}
+.app{display:flex;min-height:100vh;padding-bottom:100px}
+
+.sidebar{
+width:245px;background:#0d0f1a;padding:28px 18px;
+position:fixed;top:0;bottom:0;left:0;z-index:20;
+display:flex;flex-direction:column;border-right:1px solid var(--border)
+}
+
+.logo{font-size:25px;font-weight:900;letter-spacing:1px;margin-bottom:45px}
+.logo span{color:var(--purple2)}
+.logo-icon{display:inline-grid;place-items:center;width:38px;height:38px;
+background:linear-gradient(135deg,#b39aff,#6845d8);border-radius:12px;margin-right:8px}
+
+.menu-title{font-size:10px;letter-spacing:2px;color:#77798e;margin:0 12px 15px}
+.nav{display:grid;gap:6px}
+.nav button{
+background:none;border:0;color:#999bb0;padding:13px 14px;
+text-align:left;border-radius:10px;font-size:13px;display:flex;gap:13px;align-items:center
+}
+.nav button:hover,.nav button.active{background:#29223f;color:white}
+.sidebar-bottom{margin-top:auto}
+.premium{
+background:linear-gradient(145deg,#30214e,#171a2c);
+border:1px solid #49366e;padding:18px;border-radius:15px
+}
+.premium h3{font-size:14px;margin:10px 0}
+.premium p{font-size:11px;color:#aaa5c3;line-height:1.6}
+.premium button{margin-top:12px;background:var(--purple);border:0;padding:9px 15px;border-radius:8px;color:white}
+.version{font-size:10px;color:#606177;margin:18px 5px 0}
+
+.main{margin-left:245px;width:calc(100% - 245px);min-width:0}
+.header{
+height:78px;border-bottom:1px solid var(--border);
+display:flex;align-items:center;justify-content:space-between;padding:0 35px;gap:20px
+}
+.search-box{
+display:flex;align-items:center;gap:12px;background:var(--panel2);
+padding:12px 16px;border:1px solid var(--border);border-radius:12px;width:min(480px,65%)
+}
+.search-box input{background:none;border:0;outline:none;color:white;width:100%}
+.profile{color:#aaa;font-size:12px}
+.content{padding:30px 35px 55px;max-width:1500px;margin:auto}
+.page{display:none}
+.page.active{display:block}
+
+.hero{
+min-height:300px;border-radius:23px;padding:40px 48px;
+background:radial-gradient(circle at 85% 50%,#6547a9 0%,transparent 35%),
+linear-gradient(110deg,#211b3c,#171a30 65%,#25204a);
+display:flex;align-items:center;justify-content:space-between;overflow:hidden
+}
+.eyebrow{color:var(--purple2);font-size:10px;font-weight:800;letter-spacing:2px}
+.hero h1{font-size:clamp(36px,5vw,58px);line-height:1.1;margin:17px 0;letter-spacing:-2px}
+.hero h1 span{color:#b9a5ff}
+.hero p{color:#c0bdd0;font-size:13px;margin-bottom:18px}
+.primary{
+background:var(--purple);border:0;color:white;padding:13px 20px;
+border-radius:10px;font-weight:700;display:inline-flex;gap:9px;align-items:center
+}
+.primary:hover{background:#ad94ff}
+.orb{
+width:190px;height:190px;border-radius:50%;display:grid;place-items:center;
+background:radial-gradient(circle,#d1c0ff,#805be0 45%,#30234f 70%);
+box-shadow:0 0 70px #9b75ff55;margin-right:40px;font-size:65px
+}
+
+.section{margin-top:38px}
+.section-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:20px}
+.section-heading h2,.special h2{font-size:24px;margin-top:8px}
+.muted{color:var(--muted);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px}
+.card{background:#131624;border:1px solid #22263a;padding:11px;border-radius:15px;transition:.2s}
+.card:hover{transform:translateY(-4px);background:#1b1e31}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.card h3{font-size:13px;margin:12px 0 5px}
+.card p{font-size:11px;color:#9294a9}
+.card-actions{display:flex;gap:7px;margin-top:12px}
+.card button{background:var(--purple);color:white;border:0;padding:8px 11px;border-radius:8px;font-size:11px}
+.card button.secondary{background:#29233e;color:#d0c3ff}
+
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.feature{
+min-height:140px;border:1px solid #36304d;border-radius:16px;padding:22px;
+display:flex;flex-direction:column;justify-content:center;gap:10px;color:white;text-align:left
+}
+.feature h3{font-size:15px}
+.feature p{font-size:11px;color:#c0bad3}
+.f1{background:linear-gradient(120deg,#34235f,#191d35)}
+.f2{background:linear-gradient(120deg,#164b48,#182a36)}
+.f3{background:linear-gradient(120deg,#49305b,#24213e)}
+
+.special{padding-top:30px}
+.special>p{margin-top:12px;line-height:1.7}
+.frequency-grid,.nature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:15px;margin-top:25px}
+.frequency,.nature{
+background:#15182a;border:1px solid #292d43;border-radius:16px;
+padding:25px 15px;text-align:center;color:var(--purple2)
+}
+.frequency strong{display:block;font-size:23px;color:white;margin:12px 0}
+.frequency span{font-size:10px;color:#999bb0}
+.frequency button,.nature button{
+display:block;margin:13px auto 0;background:var(--purple);
+color:white;border:0;border-radius:8px;padding:9px 15px
+}
+.frequency.active{border-color:var(--purple);background:#292044}
+.nature{font-size:30px}
+.nature h3{font-size:14px;color:white;margin:12px 0}
+.nature.active{border-color:#56cda4}
+
+.library-panel{
+margin-top:25px;padding:50px 20px;text-align:center;
+background:#141728;border:1px solid var(--border);border-radius:18px
+}
+.library-panel h3{margin:15px 0}
+.library-panel p{color:var(--muted);font-size:12px}
+
+.ai-container{
+margin-top:22px;border:1px solid #51416f;border-radius:20px;
+overflow:hidden;background:linear-gradient(145deg,#211b38,#121525)
+}
+.ai-header{padding:22px;border-bottom:1px solid #44365e;display:flex;align-items:center;gap:15px}
+.ai-icon{width:48px;height:48px;background:linear-gradient(135deg,#b69aff,#7045d5);
+display:grid;place-items:center;border-radius:15px;font-size:25px}
+.ai-header h3{font-size:16px}
+.ai-header p{font-size:11px;color:#aaa;margin-top:5px}
+.ai-status{margin-left:auto;color:#76e3ad;font-size:10px}
+.chat{
+padding:22px;min-height:250px;max-height:420px;overflow-y:auto;
+display:flex;flex-direction:column;gap:14px
+}
+.message{max-width:85%;padding:14px 16px;border-radius:13px;font-size:13px;line-height:1.6}
+.message.ai{background:#27213e;align-self:flex-start}
+.message.user{background:#6749a9;align-self:flex-end}
+.ai-input-area{padding:18px;border-top:1px solid #44365e}
+.ai-input-area textarea{
+width:100%;height:95px;resize:vertical;background:#101321;
+border:1px solid #493d65;border-radius:12px;color:white;padding:14px;outline:none
+}
+.ai-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
+.ai-bottom span{font-size:10px;color:#999}
+.ai-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.ai-suggestions button{background:#2a2342;border:1px solid #4a3c6c;color:#d4c7ff;padding:8px 11px;border-radius:20px;font-size:10px}
+
+.player{
+position:fixed;bottom:0;left:245px;right:0;height:90px;
+background:#10121f;border-top:1px solid #292b40;
+display:grid;grid-template-columns:1fr 1.5fr 1fr;
+align-items:center;padding:0 25px;gap:20px;z-index:15
+}
+.now{display:flex;align-items:center;gap:12px;min-width:0}
+.now img{width:49px;height:49px;object-fit:cover;border-radius:8px}
+.now h4{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now p{font-size:10px;color:#9294a9;margin-top:5px}
+.controls{max-width:500px;width:100%;margin:auto}
+.control-buttons{display:flex;justify-content:center;align-items:center;gap:17px}
+.control-buttons button{border:0;background:none;color:#aaa;font-size:19px}
+.control-buttons .play{width:37px;height:37px;border-radius:50%;background:var(--purple);color:white}
+.progress-row{display:flex;align-items:center;gap:9px;margin-top:6px}
+.progress-row span{font-size:9px;color:#9294a9}
+.progress-row input{width:100%;accent-color:var(--purple)}
+.volume{display:flex;justify-content:flex-end;align-items:center;gap:10px;color:#aaa}
+.volume input{width:100px;accent-color:var(--purple)}
+.menu-mobile{display:none;background:none;color:white;border:0;font-size:22px}
+
+@media(max-width:900px){
+.orb{width:140px;height:140px;margin-right:0}
+.player{grid-template-columns:1fr 1.5fr}
+.volume{display:none}
+.content{padding:25px}
+}
+@media(max-width:650px){
+.sidebar{width:68px;padding:20px 7px}
+.logo{font-size:0;text-align:center;margin-bottom:40px}
+.logo-icon{margin:0}
+.menu-title,.nav button .nav-text,.premium,.version{display:none}
+.nav button{justify-content:center;font-size:20px;padding:13px 4px}
+.main{margin-left:68px;width:calc(100% - 68px)}
+.header{padding:0 12px;height:65px}
+.profile{display:none}
+.search-box{width:100%;padding:10px}
+.content{padding:16px 12px 30px}
+.hero{padding:25px 20px;min-height:240px}
+.hero h1{font-size:36px}
+.orb{display:none}
+.features{grid-template-columns:1fr}
+.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{padding:8px}
+.player{left:68px;height:78px;padding:0 7px;grid-template-columns:1fr 1fr;gap:5px}
+.now img{width:37px;height:37px}
+.now h4{font-size:10px;max-width:100px}
+.now p{font-size:9px}
+.control-buttons{gap:8px}
+.control-buttons button{font-size:15px}
+.control-buttons .play{width:32px;height:32px}
+.progress-row{gap:4px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<aside class="sidebar">
+<div class="logo"><span class="logo-icon">♫</span><span>NOVA</span>MUSIC</div>
+<p class="menu-title">ANA MENÜ</p>
+
+<nav class="nav">
+<button class="active" onclick="showPage('home',this)">⌂ <span class="nav-text">Ana Sayfa</span></button>
+<button onclick="showPage('discover',this)">✦ <span class="nav-text">Keşfet</span></button>
+<button onclick="showPage('library',this)">▤ <span class="nav-text">Kütüphanem</span></button>
+<button onclick="showPage('favorites',this)">♡ <span class="nav-text">Favoriler</span></button>
+<button onclick="showPage('frequencies',this)">〰 <span class="nav-text">Frekanslar</span></button>
+<button onclick="showPage('nature',this)">♧ <span class="nav-text">Doğa Sesleri</span></button>
+<button onclick="showPage('novaAI',this)">🤖 <span class="nav-text">NOVA AI</span></button>
+</nav>
+
+<div class="sidebar-bottom">
+<div class="premium">
+✨
+<h3>NOVA Premium</h3>
+<p>Yeni nesil müzik deneyimini keşfet.</p>
+<button onclick="alert('Premium özellikleri yakında!')">Keşfet</button>
+</div>
+<div class="version">NOVA MUSIC · 2.0</div>
+</div>
+</aside>
+
+<main class="main">
+
+<header class="header">
+<div class="search-box">
+🔍 <input id="search" placeholder="İnternetten müzik, sanatçı veya tür ara..." oninput="searchMusic()">
+</div>
+<div class="profile">🎧 SESİN YENİ EVRENİ</div>
+</header>
+
+<div class="content">
+
+<section id="home" class="page active">
+<div class="hero">
+<div>
+<span class="eyebrow">✦ SESİN YENİ EVRENİ</span>
+<h1>Müziğinle<br><span>kendini keşfet.</span></h1>
+<p>Müzik, frekanslar, doğa sesleri ve yapay zekâ tek yerde.</p>
+<button class="primary" onclick="showPage('discover')">▶ Şimdi keşfet</button>
+</div>
+<div class="orb">♫</div>
+</div>
+
+<div class="section">
+<div class="section-heading"><div><span class="eyebrow">SENİN İÇİN</span><h2>🔥 Öne Çıkan Müzikler</h2></div></div>
+<div class="cards" id="homeCards"></div>
+</div>
+
+<div class="section">
+<div class="section-heading"><div><span class="eyebrow">YENİ DENEYİMLER</span><h2>Ses dünyanı keşfet</h2></div></div>
+<div class="features">
+<button class="feature f1" onclick="showPage('frequencies')"><h3>〰 Frekans Dünyası</h3><p>Farklı ses tonlarını deneyimle.</p></button>
+<button class="feature f2" onclick="showPage('nature')"><h3>🌿 Doğanın Sesi</h3><p>Doğa atmosferlerini dinle.</p></button>
+<button class="feature f3" onclick="showPage('novaAI')"><h3>🤖 NOVA AI</h3><p>Yapay zekâ ile müzik keşfet.</p></button>
+</div>
+</div>
+</section>
+
+<section id="discover" class="page">
+<div class="section"><span class="eyebrow">MÜZİK EVRENİ</span><h2>✦ Müzikleri Keşfet</h2><p class="muted" style="margin:10px 0 18px">Jamendo kataloğundan çevrimiçi müzikler · Her parça kendi sanatçısına aittir.</p><div class="cards" id="discoverCards"></div><p class="muted" id="apiStatus" style="margin-top:18px">Müzik kataloğu yükleniyor…</p></div>
+</section>
+
+<section id="library" class="page">
+<div class="special">
+<span class="eyebrow">KİŞİSEL ALANIN</span><h2>▤ Müzik Kütüphanem</h2>
+<div class="cards" id="libraryCards"></div><div class="library-panel" id="libraryEmpty"><h3>♫ Müzik dünyan seni bekliyor</h3><p>Favorilerine eklediğin parçalar burada görünecek.</p></div>
+</div>
+</section>
+
+<section id="favorites" class="page">
+<div class="special"><span class="eyebrow">SENİN SEÇİMLERİN</span><h2>♡ Favorilerim</h2><div class="cards" id="favoriteCards"></div></div>
+</section>
+
+<section id="frequencies" class="page">
+<div class="special">
+<span class="eyebrow">NOVA SOUND LAB</span><h2>〰 Frekans Dünyası</h2>
+<p class="muted">Farklı ses tonlarını keşfet. Bu seslerin özel sağlık etkileri garanti edilmez.</p>
+<div class="frequency-grid" id="frequencyGrid"></div>
+</div>
+</section>
+
+<section id="nature" class="page">
+<div class="special"><span class="eyebrow">NOVA NATURE</span><h2>🌿 Doğa Sesleri</h2><div class="nature-grid" id="natureGrid"></div></div>
+</section>
+
+<section id="novaAI" class="page">
+<div class="special">
+<span class="eyebrow">ARTIFICIAL INTELLIGENCE</span>
+<h2>🤖 NOVA AI</h2>
+<p class="muted">Ne dinlemek istediğini anlat. NOVA AI sana özel müzik önerileri hazırlasın.</p>
+
+<div class="ai-container">
+<div class="ai-header">
+<div class="ai-icon">✦</div>
+<div><h3>NOVA AI Assistant</h3><p>Akıllı müzik keşif asistanın</p></div>
+<div class="ai-status">● ÇEVRİM İÇİ</div>
+</div>
+
+<div class="chat" id="chat">
+<div class="message ai">
+Merhaba! Ben NOVA AI. ✨<br>
+Bugün nasıl bir müzik istiyorsun?<br>
+Bana ruh halini, müzik türünü veya dinlemek istediğin ortamı anlat.
+</div>
+</div>
+
+<div class="ai-input-area">
+<textarea id="aiPrompt" placeholder="Örnek: Gece ders çalışırken dinlemek için sakin piyano müzikleri istiyorum..."></textarea>
+<div class="ai-bottom">
+<span>✨ NOVA AI ile müzik keşfet</span>
+<button class="primary" id="aiSend" onclick="askNovaAI()">Gönder ➤</button>
+</div>
+<div class="ai-suggestions">
+<button onclick="suggestAI('Gece dinlemek için sakin müzikler istiyorum')">🌙 Gece müzikleri</button>
+<button onclick="suggestAI('Enerjik elektronik müzik öner')">⚡ Enerjik müzik</button>
+<button onclick="suggestAI('Yağmur sesi ve piyano istiyorum')">🌧 Yağmur ve piyano</button>
+<button onclick="suggestAI('Uzay atmosferinde sinematik müzikler istiyorum')">🚀 Uzay atmosferi</button>
+</div>
+</div>
+</div>
+
+<div class="section">
+<span class="eyebrow">AI SEÇİMLERİ</span>
+<h2>🎵 Sana Özel Öneriler</h2>
+<div class="cards" id="aiResults"></div>
+</div>
+</div>
+</section>
+
+</div>
+</main>
+</div>
+
+<footer class="player">
+<div class="now">
+<img id="currentImage" src="https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=200">
+<div><h4 id="currentTitle">NOVA MUSIC</h4><p id="currentArtist">Bir müzik seç</p></div>
+</div>
+<div class="controls">
+<div class="control-buttons">
+<button onclick="toggleShuffle()">🔀</button>
+<button onclick="previousTrack()">⏮</button>
+<button class="play" id="playButton" onclick="togglePlay()">▶</button>
+<button onclick="nextTrack()">⏭</button>
+<button onclick="toggleRepeat()">🔁</button>
+</div>
+<div class="progress-row">
+<span id="elapsed">0:00</span>
+<input type="range" id="progress" min="0" max="100" value="0" oninput="seekMusic()">
+<span id="total">0:00</span>
+</div>
+</div>
+<div class="volume">🔊 <input type="range" id="volume" min="0" max="100" value="70"></div>
+</footer>
+
+<audio id="audio"></audio>
+
+<script>
+/* NOVA MUSIC - Jamendo public read API */
+const JAMENDO_CLIENT_ID = "efad991c";
+const JAMENDO_API = "https://api.jamendo.com/v3.0/tracks/";
+const audio = document.getElementById("audio");
+
+let music = [];
+let currentIndex = -1;
+let favorites = JSON.parse(localStorage.getItem("novaFavoriteTracks") || "[]");
+let shuffle = false, repeat = false;
+let oscillator = null, audioContext = null, currentFrequency = null;
+let searchTimer = null;
+let currentQuery = "";
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function formatTime(time) {
+  if (!Number.isFinite(time)) return "0:00";
+  return Math.floor(time/60)+":"+String(Math.floor(time%60)).padStart(2,"0");
+}
+function setStatus(message) {
+  const el = document.getElementById("apiStatus");
+  if (el) el.textContent = message;
+}
+function normalizeTrack(t) {
+  return {
+    id: String(t.id),
+    title: t.name || "Bilinmeyen parça",
+    artist: t.artist_name || "Bilinmeyen sanatçı",
+    genre: (t.musicinfo && t.musicinfo.tags && t.musicinfo.tags.genres || []).slice(0,2).join(", ") || "Jamendo",
+    image: t.album_image || t.image || "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=400",
+    file: t.audio || "",
+    url: t.shareurl || t.shorturl || "https://www.jamendo.com/",
+    license: t.license_ccurl || ""
+  };
+}
+function renderMusic(list, target) {
+  const container = document.getElementById(target);
+  if (!container) return;
+  container.innerHTML = list.map(track => {
+    const index = music.findIndex(t => t.id === track.id);
+    const isFav = favorites.some(f => f.id === track.id);
+    return `<article class="card">
+      <img src="${escapeHTML(track.image)}" alt="${escapeHTML(track.title)}" loading="lazy">
+      <h3>${escapeHTML(track.title)}</h3>
+      <p>${escapeHTML(track.artist)} · ${escapeHTML(track.genre)}</p>
+      <div class="card-actions">
+        <button onclick="playTrackById('${escapeHTML(track.id)}')">▶ Dinle</button>
+        <button class="secondary" onclick="toggleFavoriteById('${escapeHTML(track.id)}')">${isFav?"♥":"♡"}</button>
+      </div>
+      <p style="margin-top:9px"><a href="${escapeHTML(track.url)}" target="_blank" rel="noopener noreferrer" style="color:#b49cff;font-size:10px">Jamendo'da aç ↗</a></p>
+    </article>`;
+  }).join("") || '<p class="muted">Bu aramada müzik bulunamadı.</p>';
+}
+function refresh() {
+  renderMusic(music.slice(0,8), "homeCards");
+  renderMusic(music, "discoverCards");
+  renderMusic(favorites, "favoriteCards");
+  renderMusic(favorites, "libraryCards");
+  const empty = document.getElementById("libraryEmpty");
+  if (empty) empty.style.display = favorites.length ? "none" : "block";
+}
+async function loadJamendoTracks(query = "") {
+  currentQuery = query;
+  setStatus("Jamendo kataloğunda aranıyor…");
+  const params = new URLSearchParams({
+    client_id: JAMENDO_CLIENT_ID,
+    format: "json",
+    limit: "30",
+    type: "single albumtrack",
+    audioformat: "mp32",
+    imagesize: "300",
+    include: "musicinfo"
+  });
+  if (query.trim()) params.set("namesearch", query.trim());
+  else {
+    params.set("featured", "1");
+    params.set("boost", "popularity_month");
+  }
+  try {
+    const response = await fetch(JAMENDO_API + "?" + params.toString());
+    if (!response.ok) throw new Error("API yanıtı: " + response.status);
+    const data = await response.json();
+    if (!data || !data.results) throw new Error(data?.headers?.error_message || "Beklenmeyen API yanıtı");
+    music = data.results.map(normalizeTrack).filter(t => t.file);
+    refresh();
+    setStatus(music.length
+      ? `${music.length} parça bulundu. Müzikler Jamendo sanatçıları tarafından sağlanır.`
+      : "Bu aramada çalınabilir parça bulunamadı. Başka bir kelime dene.");
+  } catch (error) {
+    console.error("Jamendo API error:", error);
+    setStatus("Müzik kataloğuna şu an bağlanılamadı. İnternet bağlantını veya Jamendo Client ID ayarını kontrol et.");
+    const home = document.getElementById("homeCards");
+    const discover = document.getElementById("discoverCards");
+    const msg = '<p class="muted">Müzik kataloğu yüklenemedi. Biraz sonra tekrar dene.</p>';
+    if (home) home.innerHTML = msg;
+    if (discover) discover.innerHTML = msg;
+  }
+}
+function showPage(id, button) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(id)?.classList.add("active");
+  document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+  if (button) button.classList.add("active");
+  if (id === "favorites" || id === "library") refresh();
+}
+function playTrack(index) {
+  if (index < 0 || index >= music.length) return;
+  playTrackById(music[index].id);
+}
+function playTrackById(id) {
+  const track = music.find(t => t.id === String(id)) || favorites.find(t => t.id === String(id));
+  if (!track || !track.file) return;
+  stopFrequency();
+  const activeListIndex = music.findIndex(t => t.id === track.id);
+  currentIndex = activeListIndex;
+  audio.src = track.file;
+  audio.play().then(() => {
+    document.getElementById("playButton").textContent = "Ⅱ";
+  }).catch(err => {
+    console.error("Playback error:", err);
+    document.getElementById("playButton").textContent = "▶";
+    alert("Bu parça şu anda oynatılamıyor. Jamendo sayfasından da kontrol edebilirsin.");
+  });
+  document.getElementById("currentTitle").textContent = track.title;
+  document.getElementById("currentArtist").textContent = track.artist;
+  document.getElementById("currentImage").src = track.image;
+}
+function togglePlay() {
+  if (!audio.src) {
+    if (music.length) playTrack(0);
+    return;
+  }
+  if (audio.paused) audio.play().then(() => document.getElementById("playButton").textContent="Ⅱ").catch(()=>{});
+  else { audio.pause(); document.getElementById("playButton").textContent="▶"; }
+}
+function nextTrack() {
+  if (!music.length) return;
+  const index = shuffle ? Math.floor(Math.random()*music.length) : (currentIndex+1+music.length)%music.length;
+  playTrack(index);
+}
+function previousTrack() {
+  if (!music.length) return;
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  playTrack((currentIndex-1+music.length)%music.length);
+}
+function toggleShuffle() { shuffle = !shuffle; alert(shuffle ? "Karışık çalma açık" : "Karışık çalma kapalı"); }
+function toggleRepeat() { repeat = !repeat; alert(repeat ? "Tekrar açık" : "Tekrar kapalı"); }
+audio.addEventListener("ended", () => {
+  if (repeat) { audio.currentTime=0; audio.play().catch(()=>{}); }
+  else nextTrack();
+});
+function toggleFavoriteById(id) {
+  const track = music.find(t => t.id === String(id)) || favorites.find(t => t.id === String(id));
+  if (!track) return;
+  const exists = favorites.some(f => f.id === track.id);
+  favorites = exists ? favorites.filter(f => f.id !== track.id) : [track, ...favorites];
+  localStorage.setItem("novaFavoriteTracks", JSON.stringify(favorites));
+  refresh();
+}
+function toggleFavorite(index) {
+  if (music[index]) toggleFavoriteById(music[index].id);
+}
+function searchMusic() {
+  const query = document.getElementById("search").value.trim();
+  showPage("discover");
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadJamendoTracks(query), 450);
+}
+audio.addEventListener("timeupdate", () => {
+  document.getElementById("progress").value = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
+  document.getElementById("elapsed").textContent = formatTime(audio.currentTime);
+  document.getElementById("total").textContent = formatTime(audio.duration);
+});
+function seekMusic() {
+  if (audio.duration) audio.currentTime = (document.getElementById("progress").value/100)*audio.duration;
+}
+document.getElementById("volume").addEventListener("input", e => audio.volume = e.target.value/100);
+audio.volume = 0.7;
+
+/* Frekans sesleri */
+const frequencyGrid = document.getElementById("frequencyGrid");
+[174,285,396,432,528,639,741,852,963].forEach(hz => {
+  const div = document.createElement("div");
+  div.className = "frequency";
+  div.innerHTML = `〰<strong>${hz} Hz</strong><span>Ses deneyimi</span><button>Dinle</button>`;
+  div.querySelector("button").onclick = () => playFrequency(hz,div);
+  frequencyGrid.appendChild(div);
+});
+async function playFrequency(hz,element) {
+  if (currentFrequency === hz) { stopFrequency(); return; }
+  stopFrequency(); audio.pause();
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    await audioContext.resume();
+    oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine"; oscillator.frequency.value = hz; gain.gain.value = 0.025;
+    oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start();
+    currentFrequency = hz;
+    document.querySelectorAll(".frequency").forEach(e => {
+      e.classList.remove("active"); e.querySelector("button").textContent = "Dinle";
+    });
+    element.classList.add("active"); element.querySelector("button").textContent = "Durdur";
+    document.getElementById("currentTitle").textContent = hz+" Hz";
+    document.getElementById("currentArtist").textContent = "NOVA SOUND LAB";
+    document.getElementById("playButton").textContent = "▶";
+  } catch(e) { alert("Ses başlatılamadı."); }
+}
+function stopFrequency() {
+  if (oscillator) { try { oscillator.stop(); } catch(e) {} oscillator=null; }
+  if (audioContext) { audioContext.close(); audioContext=null; }
+  currentFrequency=null;
+  document.querySelectorAll(".frequency").forEach(e => {
+    e.classList.remove("active"); e.querySelector("button").textContent="Dinle";
+  });
+}
+
+/* Doğa sesleri: bu sesler için ayrıca lisanslı ses dosyaları gerekir. */
+const nature = [
+  ["🌧","Yağmur","sounds/rain.mp3"],["🌲","Orman","sounds/forest.mp3"],
+  ["🌊","Okyanus","sounds/ocean.mp3"],["🔥","Şömine","sounds/fire.mp3"],
+  ["🌙","Gece","sounds/night.mp3"],["🍃","Rüzgâr","sounds/wind.mp3"]
+];
+nature.forEach(item => {
+  const div=document.createElement("div"); div.className="nature";
+  div.innerHTML=`${item[0]}<h3>${item[1]}</h3><button>▶ Dinle</button>`;
+  div.querySelector("button").onclick=()=>{
+    stopFrequency(); audio.src=item[2];
+    audio.play().catch(()=>alert("Bu doğa sesi henüz sunucuya eklenmemiş."));
+    document.getElementById("currentTitle").textContent=item[1];
+    document.getElementById("currentArtist").textContent="NOVA NATURE";
+    document.getElementById("currentImage").src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=200";
+  };
+  document.getElementById("natureGrid").appendChild(div);
+});
+
+/* NOVA AI: kullanıcı isteğine göre Jamendo kataloğunda arama yapar. */
+function suggestAI(text) {
+  document.getElementById("aiPrompt").value=text;
+  askNovaAI();
+}
+function addMessage(text,type) {
+  const chat=document.getElementById("chat");
+  const div=document.createElement("div"); div.className="message "+type;
+  div.textContent=text; chat.appendChild(div); chat.scrollTop=chat.scrollHeight;
+}
+async function askNovaAI() {
+  const input=document.getElementById("aiPrompt");
+  const prompt=input.value.trim();
+  if (!prompt) { alert("NOVA AI'ya bir şey yaz!"); return; }
+  addMessage(prompt,"user"); input.value="";
+  addMessage("İsteğine uygun parçaları Jamendo kataloğunda arıyorum…","ai");
+  const terms = prompt.toLocaleLowerCase("tr-TR");
+  let query = prompt;
+  if (/sakin|rahat|huzur|uyku|ders|çalış|piyano/.test(terms)) query="relax piano";
+  else if (/enerjik|dans|hareket|elektronik|parti|tempo/.test(terms)) query="electronic dance";
+  else if (/uzay|kozmik|bilim kurgu|galaksi|sinematik/.test(terms)) query="cinematic ambient";
+  else if (/yağmur|doğa|orman|okyanus|deniz|rüzgâr/.test(terms)) query="nature ambient";
+  else if (/pop|neşeli|mutlu|yaz/.test(terms)) query="pop";
+  showPage("discover");
+  await loadJamendoTracks(query);
+  renderMusic(music.slice(0,12),"aiResults");
+  showPage("novaAI");
+  addMessage(music.length ? `${music.length} uygun parça buldum. Öneriler aşağıda; dinlemek için oynat düğmesine bas.` : "Bu isteğe uygun parça bulamadım. Başka kelimelerle deneyebilirsin.","ai");
+}
+document.getElementById("aiPrompt").addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();askNovaAI();}
+});
+
+/* İlk açılışta Jamendo'dan öne çıkan parçaları getir. */
+refresh();
+loadJamendoTracks("");
+</script>
+</body>
+</html>
